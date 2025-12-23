@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Planner - Track Your Progress</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">Study Planner</h1>
+            <nav class="nav">
+                <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+                <button class="nav-btn" data-view="tasks">Tasks</button>
+                <button class="nav-btn" data-view="sessions">Study Sessions</button>
+                <button class="nav-btn" data-view="analytics">Analytics</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                <h2 class="view-title">Dashboard</h2>
+                
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="total-tasks">0</div>
+                            <div class="stat-label">Total Tasks</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="completed-tasks">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="current-streak">0</div>
+                            <div class="stat-label">Day Streak</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📚</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="study-hours">0</div>
+                            <div class="stat-label">Hours Studied</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="showAddTaskModal()">Add Assignment</button>
+                        <button class="btn btn-secondary" onclick="showAddSessionModal()">Log Study Session</button>
+                        <button class="btn btn-accent" onclick="showAddGoalModal()">Set Weekly Goal</button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Tasks -->
+                <div class="section">
+                    <h3>Upcoming Assignments</h3>
+                    <div id="upcoming-tasks" class="task-list"></div>
+                </div>
+            </div>
+
+            <!-- Tasks View -->
+            <div id="tasks-view" class="view">
+                <div class="view-header">
+                    <h2 class="view-title">My Tasks</h2>
+                    <button class="btn btn-primary" onclick="showAddTaskModal()">+ Add Task</button>
+                </div>
+
+                <!-- Task Filters -->
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="assignment">Assignments</button>
+                    <button class="filter-btn" data-filter="study_session">Study Sessions</button>
+                    <button class="filter-btn" data-filter="goal">Goals</button>
+                </div>
+
+                <!-- Tasks List -->
+                <div id="tasks-container" class="tasks-container"></div>
+            </div>
+
+            <!-- Study Sessions View -->
+            <div id="sessions-view" class="view">
+                <div class="view-header">
+                    <h2 class="view-title">Study Sessions</h2>
+                    <button class="btn btn-primary" onclick="showAddSessionModal()">+ Log Session</button>
+                </div>
+                
+                <div id="sessions-container" class="sessions-container"></div>
+            </div>
+
+            <!-- Analytics View -->
+            <div id="analytics-view" class="view">
+                <h2 class="view-title">Analytics & Progress</h2>
+                
+                <div class="analytics-grid">
+                    <!-- Progress Chart -->
+                    <div class="chart-card">
+                        <h3>Task Progress</h3>
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                    
+                    <!-- Study Time Chart -->
+                    <div class="chart-card">
+                        <h3>Study Time (Last 7 Days)</h3>
+                        <canvas id="studyTimeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Streak Info -->
+                <div class="streak-section">
+                    <h3>Your Study Streak</h3>
+                    <div class="streak-display">
+                        <div class="streak-item">
+                            <div class="streak-number" id="streak-current">0</div>
+                            <div class="streak-label">Current Streak</div>
+                        </div>
+                        <div class="streak-item">
+                            <div class="streak-number" id="streak-longest">0</div>
+                            <div class="streak-label">Longest Streak</div>
+                        </div>
+                        <div class="streak-item">
+                            <div class="streak-number" id="streak-total">0</div>
+                            <div class="streak-label">Total Study Days</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Task Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Task</h3>
+                <button class="close-btn" onclick="closeModal('task-modal')">&times;</button>
+            </div>
+            <form id="task-form" class="form">
+                <input type="hidden" id="task-id">
+                
+                <div class="form-group">
+                    <label for="task-title">Title *</label>
+                    <input type="text" id="task-title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-type">Type *</label>
+                        <select id="task-type" required>
+                            <option value="assignment">Assignment</option>
+                            <option value="study_session">Study Session</option>
+                            <option value="goal">Goal</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="task-priority">Priority</label>
+                        <select id="task-priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-due-date">Due Date</label>
+                        <input type="date" id="task-due-date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="task-hours">Estimated Hours</label>
+                        <input type="number" id="task-hours" min="0" step="0.5">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('task-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Study Session Modal -->
+    <div id="session-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Log Study Session</h3>
+                <button class="close-btn" onclick="closeModal('session-modal')">&times;</button>
+            </div>
+            <form id="session-form" class="form">
+                <div class="form-group">
+                    <label for="session-task">Related Task (Optional)</label>
+                    <select id="session-task">
+                        <option value="">General Study</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="session-duration">Duration (minutes) *</label>
+                        <input type="number" id="session-duration" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="session-date">Date *</label>
+                        <input type="date" id="session-date" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="session-notes">Notes</label>
+                    <textarea id="session-notes" rows="3"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('session-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Log Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

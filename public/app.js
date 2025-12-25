@@ -1,5 +1,7 @@
 // API Base URL
-const API_URL = 'http://localhost:3000/api';
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api' 
+    : '/api';
 
 // Global state
 let currentView = 'dashboard';
@@ -127,11 +129,16 @@ async function loadUpcomingTasks() {
 async function loadTasks() {
     try {
         const response = await fetch(`${API_URL}/tasks`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         allTasks = await response.json();
+        console.log('Tasks loaded:', allTasks);
         displayTasks();
         populateTaskDropdown();
     } catch (err) {
-        showToast('Error loading tasks', 'error');
+        console.error('Error loading tasks:', err);
+        showToast('Error loading tasks: ' + err.message, 'error');
     }
 }
 
@@ -387,19 +394,28 @@ async function handleTaskSubmit(e) {
     };
     
     try {
+        let response;
         if (taskId) {
-            await fetch(`${API_URL}/tasks/${taskId}`, {
+            response = await fetch(`${API_URL}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update task');
+            }
             showToast('Task updated successfully');
         } else {
-            await fetch(`${API_URL}/tasks`, {
+            response = await fetch(`${API_URL}/tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to create task');
+            }
             showToast('Task created successfully');
         }
         
@@ -407,7 +423,8 @@ async function handleTaskSubmit(e) {
         if (currentView === 'tasks') loadTasks();
         if (currentView === 'dashboard') loadDashboard();
     } catch (err) {
-        showToast('Error saving task', 'error');
+        console.error('Error saving task:', err);
+        showToast(err.message || 'Error saving task', 'error');
     }
 }
 

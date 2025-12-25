@@ -68,30 +68,33 @@ A comprehensive web-based study planner that helps students track assignments, s
    npm install
    ```
 
-3. **Initialize database**
-   ```bash
-   npm run init-db
-   ```
-
-4. **Start the server**
+3. **Start the server**
    ```bash
    npm start
    ```
+   The database will be automatically initialized on first run with a demo user.
 
-5. **Open in browser**
+4. **Open in browser**
    ```
    http://localhost:3000
    ```
+
+## Deployment
+
+This app is production-ready and can be deployed to platforms like Render, Heroku, or Railway.
+
+**Live Demo:** https://study-planner-mjamal.onrender.com
+
+The database initializes automatically on startup, and the demo user is created if it doesn't exist.
 
 ## Project Structure
 
 ```
 Study_Planner/
 ├── server.js              # Express server and API routes
-├── database.js            # Database setup and query functions
-├── init-db.js            # Database initialization script
+├── database.js            # Database wrapper and query functions
 ├── package.json          # Dependencies and scripts
-├── study_planner.db      # SQLite database (created after init)
+├── study_planner.db      # SQLite database (auto-created on startup)
 └── public/
     ├── index.html        # Main HTML structure
     ├── styles.css        # Modern CSS styling
@@ -211,15 +214,11 @@ All task and session operations are implemented with full Create, Read, Update, 
 
 ### Run in Development Mode
 ```bash
-npm run dev
+npm start
 ```
-This uses nodemon for automatic server restarts on file changes.
 
 ### Reset Database
-To reset the database, delete `study_planner.db` and run:
-```bash
-npm run init-db
-```
+To reset the database, delete `study_planner.db` and restart the server. The database will be automatically recreated.
 
 ## Customization
 
@@ -275,16 +274,16 @@ Edit CSS variables in `public/styles.css`:
 ## Troubleshooting
 
 ### Database Errors
-If you encounter database errors, try reinitializing:
-```bash
-npm run init-db
-```
+If you encounter database errors, delete `study_planner.db` and restart the server. The database will be automatically recreated.
 
 ### Port Already in Use
 Change the port in `server.js` or kill the process using port 3000.
 
 ### Charts Not Displaying
 Ensure Chart.js is loaded from CDN. Check browser console for errors.
+
+### Tasks Not Loading on Render
+The app automatically detects whether it's running locally or on a hosted platform and adjusts the API URL accordingly.
 
 ## License
 

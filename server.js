@@ -2,32 +2,100 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const { dbGet, dbRun } = require('./database');
 const db = require('./database');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize database tables on startup
+const initDB = () => {
+    const database = new sqlite3.Database('study_planner.db');
+    
+    database.serialize(() => {
+        // Users table
+        database.run(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Tasks table
+        database.run(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                type TEXT NOT NULL CHECK(type IN ('assignment', 'study_session', 'goal')),
+                priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high')),
+                status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed')),
+                due_date DATE,
+                estimated_hours REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
+        // Completion logs table
+        database.run(`
+            CREATE TABLE IF NOT EXISTS completion_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                hours_spent REAL,
+                notes TEXT,
+                FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
+        // Study sessions table
+        database.run(`
+            CREATE TABLE IF NOT EXISTS study_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                task_id INTEGER,
+                duration_minutes INTEGER NOT NULL,
+                session_date DATE NOT NULL,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
+            )
+        `);
+
+        // Create demo user if it doesn't exist
+        database.get('SELECT * FROM users WHERE id = ?', [1], (err, user) => {
+            if (!user) {
+                database.run('INSERT INTO users (username, email) VALUES (?, ?)',
+                    ['demo', 'demo@example.com'], function(err) {
+                        if (err) {
+                            console.error('Error creating demo user:', err);
+                        } else {
+                            console.log('Demo user created');
+                        }
+                    });
+            } else {
+                console.log('Demo user already exists');
+            }
+        });
+    });
+};
+
+// Initialize database
+initDB();
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Initialize database and create demo user
-(async () => {
-    try {
-        await db.initializeDatabase();
-        console.log('Database initialized');
-        
-        // Check if demo user exists, create if not
-        const demoUser = await db.getUser(1);
-        if (!demoUser) {
-            await db.createUser('demo', 'demo@example.com');
-            console.log('Demo user created');
-        }
-    } catch (err) {
-        console.error('Error initializing database:', err);
-    }
-})();
 
 // Default user ID for demo (in production, use authentication)
 const DEFAULT_USER_ID = 1;
@@ -52,8 +120,8 @@ app.get('/api/tasks', async (req, res) => {
 // Create task
 app.post('/api/tasks', async (req, res) => {
     try {
-        const taskId = await db.createTask(DEFAULT_USER_ID, req.body);
-        res.status(201).json({ id: taskId, message: 'Task created successfully' });
+        const result = await db.createTask(DEFAULT_USER_ID, req.body);
+        res.status(201).json({ id: result.lastID, message: 'Task created successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -62,8 +130,8 @@ app.post('/api/tasks', async (req, res) => {
 // Update task
 app.put('/api/tasks/:id', async (req, res) => {
     try {
-        const changes = await db.updateTask(req.params.id, req.body);
-        if (changes === 0) {
+        const result = await db.updateTask(req.params.id, req.body);
+        if (result.changes === 0) {
             res.status(404).json({ error: 'Task not found' });
         } else {
             res.json({ message: 'Task updated successfully' });
@@ -76,8 +144,8 @@ app.put('/api/tasks/:id', async (req, res) => {
 // Delete task
 app.delete('/api/tasks/:id', async (req, res) => {
     try {
-        const changes = await db.deleteTask(req.params.id);
-        if (changes === 0) {
+        const result = await db.deleteTask(req.params.id);
+        if (result.changes === 0) {
             res.status(404).json({ error: 'Task not found' });
         } else {
             res.json({ message: 'Task deleted successfully' });

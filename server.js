@@ -10,7 +10,24 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Initialize database and create demo user
+(async () => {
+    try {
+        await db.initializeDatabase();
+        console.log('Database initialized');
+        
+        // Check if demo user exists, create if not
+        const demoUser = await db.getUser(1);
+        if (!demoUser) {
+            await db.createUser('demo', 'demo@example.com');
+            console.log('Demo user created');
+        }
+    } catch (err) {
+        console.error('Error initializing database:', err);
+    }
+})();
 
 // Default user ID for demo (in production, use authentication)
 const DEFAULT_USER_ID = 1;
@@ -192,5 +209,5 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Study Planner server running on http://localhost:${PORT}`);
+    console.log(`Study Planner server running on port ${PORT}`);
 });
